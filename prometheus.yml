@@ -8,5 +8,5 @@ scrape_configs:
   
   - job_name: 'jenkins'
     static_configs:
-      - targets: ['YOUR_DROPLET_IP:8080']
+      - targets: ['159.65.25.168:8080']
     metrics_path: '/prometheus/'
