@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, master ]
 
+# Add permissions for security events
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -35,11 +41,21 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'securesnap:test'
+        format: 'table'
+        exit-code: '0'
+    
+    # Only upload SARIF if we have the right permissions
+    - name: Run Trivy vulnerability scanner (SARIF)
+      uses: aquasecurity/trivy-action@master
+      if: github.event_name != 'pull_request'
+      with:
+        image-ref: 'securesnap:test'
         format: 'sarif'
         output: 'trivy-results.sarif'
     
     - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
+      if: github.event_name != 'pull_request'
       with:
         sarif_file: 'trivy-results.sarif'
 
