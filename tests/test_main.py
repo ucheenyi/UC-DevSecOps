@@ -15,4 +15,15 @@ def test_read_root():
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert "status" in response.json()
+    assert response.json()["status"] == "healthy"
+
+def test_metrics_endpoint():
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "app_requests_total" in response.text
+
+def test_info_endpoint():
+    response = client.get("/info")
+    assert response.status_code == 200
+    assert response.json()["service"] == "SECURESNAP"

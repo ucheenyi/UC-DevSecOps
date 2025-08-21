@@ -1,30 +1,42 @@
 from fastapi import FastAPI
-from prometheus_client import start_http_server, Counter
+from prometheus_client import start_http_server, Counter, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
 import threading
 
-app = FastAPI()
+app = FastAPI(
+    title="SECURESNAP DevSecOps API",
+    description="A secure FastAPI application with Prometheus metrics",
+    version="1.0.0"
+)
 
-REQUEST_COUNT = Counter("app_requests_total", "Total number of requests")
+REQUEST_COUNT = Counter("app_requests_total", "Total number of requests", ["endpoint"])
+
+@app.on_event("startup")
+async def startup_event():
+    # Start Prometheus metrics server
+    start_http_server(8001)
 
 @app.get("/")
 def read_root():
-    REQUEST_COUNT.inc()
+    REQUEST_COUNT.labels(endpoint="root").inc()
     return {"message": "Hello, SECURESNAP DevSecOps!"}
 
 @app.get("/health")
 def health_check():
-    REQUEST_COUNT.inc()
-    return {"status": "healthy"}
+    REQUEST_COUNT.labels(endpoint="health").inc()
+    return {"status": "healthy", "service": "securesnap"}
 
-# Start Prometheus metrics server
-def start_metrics_server():
-    start_http_server(8001)
+@app.get("/metrics")
+def get_metrics():
+    REQUEST_COUNT.labels(endpoint="metrics").inc()
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-if __name__ == "__main__":
-    # Start metrics server in background
-    metrics_thread = threading.Thread(target=start_metrics_server)
-    metrics_thread.daemon = True
-    metrics_thread.start()
-    
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/info")
+def get_info():
+    REQUEST_COUNT.labels(endpoint="info").inc()
+    return {
+        "service": "SECURESNAP",
+        "version": "1.0.0",
+        "status": "running",
+        "metrics_endpoint": "/metrics"
+    }
